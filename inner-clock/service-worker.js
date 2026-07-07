@@ -1,4 +1,4 @@
-const CACHE_NAME = "inner-clock-v1";
+const CACHE_NAME = "inner-clock-v2";
 
 const ASSETS = [
   "./",
