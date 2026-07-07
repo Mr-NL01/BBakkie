@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#111318" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111318" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Inner Clock" />
+  <title>Inner Clock</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+</head>
+<body>
+
+  <!-- Permanently dark strips over the safe areas (notch/dynamic island,
+       home indicator). iOS can get "stuck" tinting its chrome/status bar to
+       match whatever color last touched the top of the viewport (e.g. the
+       red Stop screen), with no reliable way to force a re-sample in a
+       single-page app that never scrolls or navigates. Owning these pixels
+       directly sidesteps that instead of fighting it. -->
+  <div class="safe-area-cover safe-area-top" aria-hidden="true"></div>
+  <div class="safe-area-cover safe-area-bottom" aria-hidden="true"></div>
+
+  <!-- HOME -->
+  <section id="screen-home" class="screen">
+    <div class="home-content">
+      <h1 class="title">Inner Clock</h1>
+      <p class="subtitle">The Pursuit of Precision</p>
+
+      <div class="setting-block">
+        <span class="setting-label">Mode</span>
+        <div id="mode-select" class="segmented">
+          <button type="button" class="segment" data-mode="short">Short</button>
+          <button type="button" class="segment" data-mode="medium">Medium</button>
+          <button type="button" class="segment" data-mode="long">Long</button>
+        </div>
+      </div>
+
+      <div class="setting-block">
+        <span class="setting-label">Players</span>
+        <div class="stepper">
+          <button type="button" id="player-minus" class="stepper-btn">&minus;</button>
+          <span id="player-count" class="stepper-value">2</span>
+          <button type="button" id="player-plus" class="stepper-btn">+</button>
+        </div>
+      </div>
+
+      <div class="setting-block toggle-row">
+        <span class="setting-label">Show time after round</span>
+        <button type="button" id="show-time-toggle" class="toggle" role="switch" aria-checked="false">
+          <span class="toggle-thumb"></span>
+        </button>
+      </div>
+
+      <button type="button" id="home-start" class="btn btn-primary btn-large">Start</button>
+
+      <p class="credit">Made by Bram Bredewold</p>
+    </div>
+  </section>
+
+  <!-- INTRO -->
+  <section id="screen-intro" class="screen">
+    <div class="intro-content">
+      <div class="intro-label">Target time</div>
+      <div id="intro-number" class="intro-number">0</div>
+      <button type="button" id="intro-continue" class="btn btn-primary btn-large" disabled>Continue</button>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="screen-game" class="screen">
+
+    <div id="game-ready" class="game-sub">
+      <div id="game-player-label" class="player-label">Player 1</div>
+      <div id="game-target-display" class="target-display"></div>
+      <button type="button" id="game-start" class="btn-round btn-start">Start</button>
+    </div>
+
+    <div id="game-running" class="game-sub game-running">
+      <span class="stop-label">Stop</span>
+    </div>
+
+    <div id="game-result" class="game-sub">
+      <div id="game-result-time" class="result-time"></div>
+      <button type="button" id="game-result-continue" class="btn btn-primary btn-large">Continue</button>
+    </div>
+
+  </section>
+
+  <!-- END -->
+  <section id="screen-end" class="screen">
+    <div class="end-content">
+      <h2 class="end-title">Results</h2>
+      <table id="end-table">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Time</th>
+            <th>Difference</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button type="button" id="end-back" class="btn btn-primary btn-large">Back to menu</button>
+    </div>
+  </section>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
