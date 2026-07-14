@@ -1,4 +1,4 @@
-const CACHE_NAME = "inner-clock-v2";
+const CACHE_NAME = "inner-clock-v6";
 
 const ASSETS = [
   "./",
@@ -8,6 +8,12 @@ const ASSETS = [
   "js/engine.js",
   "js/ui.js",
   "js/main.js",
+  "mexen.html",
+  "css/mexen.css",
+  "js/mexen/config.js",
+  "js/mexen/engine.js",
+  "js/mexen/ui.js",
+  "js/mexen/main.js",
   "manifest.webmanifest",
   "assets/icons/icon-192.png",
   "assets/icons/icon-512.png",

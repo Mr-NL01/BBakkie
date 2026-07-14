@@ -63,6 +63,28 @@ body {
   display: flex;
 }
 
+/* Game switcher — plain link, shown only on the two HOME screens */
+
+.game-switch {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 1rem;
+  font-weight: 600;
+  z-index: 10;
+}
+
+.game-switch-icon {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
 /* HOME */
 
 .home-content {

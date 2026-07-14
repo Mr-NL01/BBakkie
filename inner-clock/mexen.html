@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#111318" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111318" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Mexen" />
+  <title>Mexen</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/mexen.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+</head>
+<body>
+
+  <div class="safe-area-cover safe-area-top" aria-hidden="true"></div>
+  <div class="safe-area-cover safe-area-bottom" aria-hidden="true"></div>
+
+  <!-- HOME -->
+  <section id="screen-home" class="screen">
+    <a href="index.html" class="game-switch">
+      <span class="game-switch-icon">⏱️</span>
+      <span>Inner Clock</span>
+    </a>
+    <div class="home-content">
+      <h1 class="title">Mexen</h1>
+
+      <div class="setting-block">
+        <span class="setting-label">Players</span>
+        <div class="stepper">
+          <button type="button" id="player-minus" class="stepper-btn">&minus;</button>
+          <span id="player-count" class="stepper-value">2</span>
+          <button type="button" id="player-plus" class="stepper-btn">+</button>
+        </div>
+      </div>
+
+      <button type="button" id="home-start" class="btn btn-primary btn-large">Start</button>
+    </div>
+  </section>
+
+  <!-- NAMES -->
+  <section id="screen-names" class="screen">
+    <div class="names-content">
+      <h2 class="names-title">Players</h2>
+      <table id="names-table">
+        <tbody></tbody>
+      </table>
+      <button type="button" id="names-start" class="btn btn-primary btn-large">Start</button>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="screen-game" class="screen">
+
+    <!-- normal turn: one player, two dice, mandatory throws -->
+    <div id="game-turn" class="game-sub">
+      <div id="game-player-label" class="player-label"></div>
+      <div class="dice-row">
+        <div id="game-die-0" class="die empty"></div>
+        <div id="game-die-1" class="die empty"></div>
+      </div>
+      <div id="game-score-label" class="score-label"></div>
+      <button type="button" id="game-throw" class="btn-throw">Throw dice</button>
+    </div>
+
+    <!-- 3+ tie throw-off fallback: same screen, one die, one player at a time -->
+    <div id="game-throwoff-seq" class="game-sub">
+      <div id="throwoff-seq-label" class="player-label"></div>
+      <div class="dice-row">
+        <div id="throwoff-seq-die" class="die empty"></div>
+      </div>
+      <button type="button" id="throwoff-seq-throw" class="btn-throw">Throw dice</button>
+    </div>
+
+  </section>
+
+  <!-- THROW-OFF ("High is dry" — 2-player tie only) -->
+  <section id="screen-throwoff" class="screen">
+    <div class="throwoff-split">
+      <div class="throwoff-half throwoff-top">
+        <div id="throwoff-top-name" class="throwoff-name"></div>
+        <div id="throwoff-top-die" class="die empty"></div>
+        <button type="button" id="throwoff-top-throw" class="btn btn-primary">Throw dice</button>
+      </div>
+      <div class="throwoff-divider" aria-hidden="true"></div>
+      <div class="throwoff-half throwoff-bottom">
+        <div id="throwoff-bottom-name" class="throwoff-name"></div>
+        <div id="throwoff-bottom-die" class="die empty"></div>
+        <button type="button" id="throwoff-bottom-throw" class="btn btn-primary">Throw dice</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- END -->
+  <section id="screen-end" class="screen">
+    <div class="end-content">
+      <h2 class="end-title">Results</h2>
+      <table id="mexen-end-table">
+        <thead>
+          <tr><th>Player</th><th>Score</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p id="end-mex-count" class="end-mex-count"></p>
+      <div class="end-actions">
+        <button type="button" id="end-quit" class="btn btn-danger">Quit</button>
+        <button type="button" id="end-next-round" class="btn btn-primary">Next round</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Doubles announcement — blocks the game until dismissed -->
+  <div id="popup-overlay" class="modal-overlay">
+    <div class="modal-box">
+      <p id="popup-message" class="modal-message"></p>
+      <button type="button" id="popup-continue" class="btn btn-primary btn-large">Continue</button>
+    </div>
+  </div>
+
+  <!-- Quit confirmation -->
+  <div id="quit-overlay" class="modal-overlay">
+    <div class="modal-box">
+      <h3 class="modal-title">Are you sure?</h3>
+      <p class="modal-message">When quitting the game all progress will be lost</p>
+      <div class="modal-actions">
+        <button type="button" id="quit-yes" class="btn btn-danger">Yes</button>
+        <button type="button" id="quit-no" class="btn btn-secondary">No</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/mexen/main.js"></script>
+</body>
+</html>

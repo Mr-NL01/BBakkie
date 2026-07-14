@@ -1,0 +1,269 @@
+/* HOME reuses Inner Clock's shared .home-content / .stepper / .btn styles. */
+
+/* NAMES */
+
+.names-content {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+}
+
+.names-title {
+  text-align: center;
+  margin: 0;
+}
+
+#names-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 2px solid var(--text);
+}
+
+#names-table td {
+  border: 1px solid var(--text);
+  padding: 10px 12px;
+}
+
+#names-table td:first-child {
+  color: var(--muted);
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+#names-table input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  /* Exception to the app-wide user-select:none — typing needs a real caret. */
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* GAME */
+
+#screen-game {
+  padding: 0;
+}
+
+.dice-row {
+  display: flex;
+  gap: 16px;
+}
+
+.die {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.die.empty {
+  border-style: dashed;
+}
+
+.die.held {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.35);
+}
+
+.score-label {
+  min-height: 1.6rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.btn-throw {
+  width: 200px;
+  height: 200px;
+  border-radius: 28px;
+  border: none;
+  background: var(--accent);
+  color: #06210f;
+  font-size: 1.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* .invisible (not .hidden/display:none) so the button's space stays
+   reserved and surrounding content doesn't reflow when it toggles. */
+.btn-throw.invisible {
+  visibility: hidden;
+}
+
+/* THROW-OFF (2-player split screen) */
+
+#screen-throwoff {
+  padding: 0;
+}
+
+.throwoff-split {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.throwoff-half {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+}
+
+.throwoff-top {
+  transform: rotate(180deg);
+}
+
+.throwoff-divider {
+  height: 2px;
+  flex-shrink: 0;
+  background: var(--text);
+}
+
+.throwoff-name {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.throwoff-half .btn.invisible {
+  visibility: hidden;
+}
+
+/* END */
+
+#mexen-end-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#mexen-end-table th,
+#mexen-end-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+#mexen-end-table th {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+#mexen-end-table tr:last-child td {
+  border-bottom: none;
+}
+
+.row-loser td {
+  background: var(--danger);
+  color: #fff;
+  font-weight: 700;
+  animation: loser-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes loser-pulse {
+  0%, 100% { background-color: var(--danger); }
+  50% { background-color: #ff6b52; }
+}
+
+.end-mex-count {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0;
+}
+
+.end-mex-count.hidden {
+  display: none;
+}
+
+.end-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.end-actions .btn {
+  flex: 1;
+}
+
+/* Modals: doubles announcement + quit confirmation */
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 2000;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-box {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  text-align: center;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.modal-message {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.modal-actions .btn {
+  flex: 1;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #2a0c08;
+}
+
+.btn-secondary {
+  background: var(--border);
+  color: var(--text);
+}
