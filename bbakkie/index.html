@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#111318" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111318" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="BBakkie" />
+  <title>BBakkie</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+</head>
+<body>
+
+  <div class="safe-area-cover safe-area-top" aria-hidden="true"></div>
+  <div class="safe-area-cover safe-area-bottom" aria-hidden="true"></div>
+
+  <!-- LANDING -->
+  <section id="screen-landing" class="screen active">
+    <div class="landing-content">
+      <h1 class="title">BBakkie</h1>
+
+      <nav class="game-list">
+        <a href="inner-clock.html" class="game-tile">
+          <span class="game-tile-icon">⏱️</span>
+          <span class="game-tile-label">Inner Clock</span>
+        </a>
+        <a href="mexen.html" class="game-tile">
+          <span class="game-tile-icon">🎲</span>
+          <span class="game-tile-label">Mexen</span>
+        </a>
+        <div class="game-tile game-tile-disabled" aria-disabled="true">
+          <span class="game-tile-icon">🍻</span>
+          <span class="game-tile-label">Dertigen</span>
+          <span class="game-tile-badge">Coming soon</span>
+        </div>
+      </nav>
+    </div>
+  </section>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js").catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

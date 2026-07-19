@@ -63,26 +63,56 @@ body {
   display: flex;
 }
 
-/* Game switcher — plain link, shown only on the two HOME screens */
+/* LANDING */
 
-.game-switch {
-  position: absolute;
-  top: max(16px, env(safe-area-inset-top));
-  right: 16px;
+.landing-content {
+  width: 100%;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-decoration: none;
-  color: var(--muted);
-  font-size: 1rem;
-  font-weight: 600;
-  z-index: 10;
+  align-items: stretch;
+  gap: 32px;
 }
 
-.game-switch-icon {
-  font-size: 2.4rem;
+.game-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.game-tile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.game-tile-icon {
+  font-size: 2.2rem;
   line-height: 1;
+}
+
+.game-tile-label {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.game-tile-disabled {
+  opacity: 0.5;
+}
+
+.game-tile-badge {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
 }
 
 /* HOME */
@@ -100,6 +130,7 @@ body {
   font-size: 2.4rem;
   margin: 0;
   font-weight: 700;
+  text-align: center;
 }
 
 .subtitle {

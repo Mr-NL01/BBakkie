@@ -1,8 +1,9 @@
-const CACHE_NAME = "inner-clock-v13";
+const CACHE_NAME = "bbakkie-v1";
 
 const ASSETS = [
   "./",
   "index.html",
+  "inner-clock.html",
   "css/styles.css",
   "js/config.js",
   "js/engine.js",

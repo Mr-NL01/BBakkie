@@ -1,7 +1,7 @@
 {
-  "name": "Inner Clock",
-  "short_name": "Inner Clock",
-  "description": "A pass-and-play time estimation game.",
+  "name": "BBakkie",
+  "short_name": "BBakkie",
+  "description": "A collection of pass-and-play party games.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

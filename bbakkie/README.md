@@ -1,6 +1,8 @@
-# Inner Clock
+# BBakkie
 
-A single-device, pass-and-play time-estimation game. Vanilla HTML/CSS/JS, no build step.
+A collection of single-device, pass-and-play party games: Inner Clock (time
+estimation) and Mexen (dice), with Dertigen coming soon. Vanilla HTML/CSS/JS,
+no build step.
 
 ## Running locally
 
@@ -22,7 +24,7 @@ Then open `http://localhost:8000` in your browser.
 
 or 
 
-http://192.168.1.30:8000/inner-clock/
+http://192.168.1.30:8000/bbakkie/
 
 ## Testing
 

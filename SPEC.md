@@ -26,7 +26,7 @@ to react to). Do not add servers, accounts, names, or network code.
 ## File structure
 
 ```
-inner-clock/
+bbakkie/
   index.html            single page, contains all four screens as sections
   css/styles.css
   js/config.js          modes, settings, display formatting — plain data
@@ -178,4 +178,4 @@ before any iPhone or PWA work happens. Requirements:
 Player names, sounds, haptics, animations beyond the intro count-up,
 score history, persistence between sessions, networked play, best-of-N rounds.
 
-## Note to myself: location http://localhost:8000/inner-clock/
+## Note to myself: location http://localhost:8000/bbakkie/
