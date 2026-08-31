@@ -1,7 +1,7 @@
 # BBakkie
 
 A collection of single-device, pass-and-play party games: Inner Clock (time
-estimation) and Mexen (dice), with Dertigen coming soon. Vanilla HTML/CSS/JS,
+estimation), Mexen (dice) and Dertigen being a dice party game. Vanilla HTML/CSS/JS,
 no build step.
 
 ## Running locally
