@@ -30,3 +30,8 @@ export const TIMING = {
   jokerPopupMs: 800, // 🃏 popup duration, spec-fixed
   escalatePauseMs: 500, // full set-aside row shown before it clears on escalation
 };
+
+// Dice mode — a HOME-screen preference. "offline": the dice are thrown in
+// real life and the app only keeps score (no DICE_TURN/HUNT screens, one
+// OFFLINE screen per turn instead). "screen": the full on-screen dice game.
+export const DICE_MODE_DEFAULT = "offline";

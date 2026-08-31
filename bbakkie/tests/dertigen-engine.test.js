@@ -46,9 +46,13 @@ function makeRig() {
   return rng;
 }
 
-function newGame(names, rig) {
+// Defaults to "screen" (on-screen dice) — everything below tests the dice
+// game. The engine itself defaults to "offline"; pass it explicitly for the
+// score-keeping tests at the bottom.
+function newGame(names, rig, diceMode = "screen") {
   const eng = createEngine(rig);
   eng.setPlayerCount(names.length);
+  if (diceMode === "screen") eng.toggleDiceMode();
   eng.goToNames();
   names.forEach((n, i) => eng.setName(i, n));
   eng.startGame();
@@ -184,7 +188,7 @@ test("4. band boundaries: 6, 10 dive; 11/29 self-points; 30 nothing; 31/36 hunt"
   eq(eng.getState().players[1].sips, 0);
   eq(eng.getState().screen, "SCOREBOARD");
 
-  // total 31 — left +1, hunt starts at wanted 1
+  // total 31 — receiver +1, hunt starts at wanted 1
   rig = makeRig();
   eng = newGame(["A", "B"], rig);
   playTurn(eng, rig, [
@@ -194,16 +198,16 @@ test("4. band boundaries: 6, 10 dive; 11/29 self-points; 30 nothing; 31/36 hunt"
   ]);
   let s = eng.getState();
   eq(s.screen, "HUNT", "total 31 starts a hunt");
-  eq(s.players[1].sips, 1, "left player got the base verschil immediately");
+  eq(s.players[1].sips, 1, "B, A's receiver at 2 players, got the base verschil immediately");
   eq(s.hunt.wanted, 1, "hunting 1s");
   eq(s.hunt.baseVerschil, 1);
 
-  // total 36 — left +6, hunt wanted 6
+  // total 36 — receiver +6, hunt wanted 6
   rig = makeRig();
   eng = newGame(["A", "B"], rig);
   playTurn(eng, rig, [[[6, 6, 6, 6, 6, 6], 6]]);
   s = eng.getState();
-  eq(s.players[1].sips, 6, "total 36 -> left +6");
+  eq(s.players[1].sips, 6, "total 36 -> receiver +6");
   eq(s.hunt.wanted, 6, "hunt wanted = 6");
 });
 
@@ -252,20 +256,20 @@ test("5. dive doubling: others 0, 4, 12, 25 become 0, 8, 24, 50; diver unchanged
   eq(s.popup, { type: "dive" });
 });
 
-test("6. hunt canonical: total 33, two 3s then dead, dead -> left gains exactly 9", () => {
+test("6. hunt canonical: total 33, two 3s then dead, receiver gains exactly 9", () => {
   const rig = makeRig();
   const eng = newGame(["A", "B", "C"], rig);
   playTurn(eng, rig, T33);
   let s = eng.getState();
   eq(s.screen, "HUNT");
-  eq(s.players[1].sips, 3, "base verschil 3 applied to B");
+  eq(s.players[2].sips, 3, "base verschil 3 applied to C, the seat before A");
 
   rig.push(3, 3, 1, 1, 1, 1); // two hunted 3s
   eng.huntThrow();
   s = eng.getState();
-  eq(s.players[1].sips, 9, "3 base + 3 + 3");
+  eq(s.players[2].sips, 9, "3 base + 3 + 3");
   eq(s.hunt.remaining, 4, "four dice left at this level");
-  eq(s.hunt.pointsToLeft, 9);
+  eq(s.hunt.pointsToPrev, 9);
 
   rig.push(1, 1, 1, 1); // dead — joker
   eng.huntThrow();
@@ -282,7 +286,7 @@ test("6. hunt canonical: total 33, two 3s then dead, dead -> left gains exactly 
   eng.finishHunt();
   s = eng.getState();
   eq(s.screen, "SCOREBOARD");
-  eq(s.players[1].sips, 9, "left received 3 + 3 + 3 = 9 total");
+  eq(s.players[2].sips, 9, "C received 3 + 3 + 3 = 9 total");
   eq(s.players[0].sips, 0, "thrower unchanged");
 });
 
@@ -325,7 +329,7 @@ test("8. escalation scores by the NEW number: base 2 + 12 + 6 = 20", () => {
   eng.huntThrow();
   eng.finishHunt();
   const s = eng.getState();
-  eq(s.players[1].sips, 20, "left gained base 2 + 12 + 6 = 20");
+  eq(s.players[1].sips, 20, "the receiver gained base 2 + 12 + 6 = 20");
   eq(s.screen, "SCOREBOARD");
 });
 
@@ -341,22 +345,33 @@ test("9. escalation at 6 stays 6", () => {
   eq(s.players[1].sips, 6 + 36, "six 6s still scored");
 });
 
-test("10. rotation wraps: last player's left is player 0", () => {
-  const rig = makeRig();
-  const eng = newGame(["A", "B", "C"], rig);
+test("10. rotation wraps backwards: seat 0 throws for the last seat", () => {
+  const T31 = [
+    [[6, 6, 6, 6, 5, 2], 6],
+    [[5, 2], 5],
+    [[2], 2],
+  ];
+
+  // A opens the game, so the receiver wraps back round to C.
+  let rig = makeRig();
+  let eng = newGame(["A", "B", "C"], rig);
+  playTurn(eng, rig, T31);
+  let s = eng.getState();
+  eq(s.prevIndex, 2, "seat 0's receiver wraps to the last seat");
+  eq(s.players.map((p) => p.sips), [0, 0, 1], "C got the base verschil");
+
+  // Mid-table it is simply the seat before — and turn order is unchanged.
+  rig = makeRig();
+  eng = newGame(["A", "B", "C"], rig);
   playTurn(eng, rig, T30); // A
   nextTurn(eng);
   playTurn(eng, rig, T30); // B
   nextTurn(eng);
-  eq(eng.getState().currentIndex, 2, "C's turn");
-  playTurn(eng, rig, [
-    [[6, 6, 6, 6, 5, 2], 6],
-    [[5, 2], 5],
-    [[2], 2],
-  ]); // C: total 31
-  const s = eng.getState();
-  eq(s.players[0].sips, 1, "C's left is A (wrap to player 0)");
-  eq(s.leftIndex, 0);
+  eq(eng.getState().currentIndex, 2, "C's turn — order is still A -> B -> C");
+  playTurn(eng, rig, T31);
+  s = eng.getState();
+  eq(s.prevIndex, 1, "C throws for B");
+  eq(s.players.map((p) => p.sips), [0, 1, 0], "B got the base verschil");
 });
 
 test("11. drink floors at 0 and the counter cannot exceed current sips", () => {
@@ -430,17 +445,17 @@ test("12. startTurn skips DRINK when sips === 0", () => {
 test("13. quitCurrentPlayer mid-hunt voids the turn", () => {
   const rig = makeRig();
   const eng = newGame(["A", "B", "C"], rig);
-  playTurn(eng, rig, T33); // B +3, hunt starts
+  playTurn(eng, rig, T33); // C +3, hunt starts
   rig.push(3, 3, 1, 1, 1, 1);
-  eng.huntThrow(); // B at 9
-  eq(eng.getState().players[1].sips, 9);
+  eng.huntThrow(); // C at 9
+  eq(eng.getState().players[2].sips, 9);
 
   eng.quitCurrentPlayer();
   const s = eng.getState();
   eq(s.players.map((p) => p.name), ["B", "C"], "A removed, seating re-linked");
   eq(s.players[0].sips, 0, "B restored to the TURN_START snapshot");
-  eq(s.players[1].sips, 0);
-  eq(s.currentIndex, 0, "next turn belongs to the ex-left player (B)");
+  eq(s.players[1].sips, 0, "C's 9 hunted sips rolled back with the voided turn");
+  eq(s.currentIndex, 0, "next turn belongs to the next player in order (B)");
   eq(s.screen, "DICE_TURN", "B has 0 sips again, drink screen skipped");
 });
 
@@ -497,7 +512,105 @@ test("16. (extra) quit on the DRINK screen", () => {
   const s = eng.getState();
   eq(s.players.map((p) => p.name), ["B", "C"], "A removed from the drink screen");
   eq(s.players.map((p) => p.sips), [0, 0], "nobody else's sips touched");
-  eq(s.currentIndex, 0, "B (ex-left) is up");
+  eq(s.currentIndex, 0, "B, next in order, is up");
+});
+
+// ---- offline dice mode (score-keeping only) ----
+
+test("17. offline mode replaces DICE_TURN with OFFLINE, and books onto the thrower", () => {
+  const rig = makeRig();
+  const eng = newGame(["A", "B", "C"], rig, "offline");
+  eq(eng.getState().screen, "OFFLINE", "turn 1 opens on OFFLINE, not DICE_TURN");
+  eq(eng.getState().offlineTarget, "current", "the thrower is armed by default");
+  eq(eng.getState().prevIndex, 2, "the seat before A is exposed on OFFLINE");
+
+  eng.adjustOfflineCounter(10);
+  eng.adjustOfflineCounter(-1);
+  eng.adjustOfflineCounter(1);
+  eng.adjustOfflineCounter(1);
+  eq(eng.getState().offlineCounter, 11, "+10 -1 +1 +1 = 11");
+
+  eng.confirmOffline();
+  const s = eng.getState();
+  eq(s.screen, "SCOREBOARD", "Continue lands on the scoreboard");
+  eq(s.players.map((p) => p.sips), [11, 0, 0], "the sips went to A");
+  eq(rig.left(), 0, "no dice were rolled");
+});
+
+test("18. offline counter floors at 0 and resets each turn", () => {
+  const rig = makeRig();
+  const eng = newGame(["A", "B"], rig, "offline");
+  eng.adjustOfflineCounter(-10);
+  eq(eng.getState().offlineCounter, 0, "cannot go negative");
+  eng.adjustOfflineCounter(3);
+  eng.adjustOfflineCounter(-10);
+  eq(eng.getState().offlineCounter, 0, "-10 from 3 floors at 0");
+
+  eng.adjustOfflineCounter(5);
+  eng.confirmOffline();
+  eng.advanceTurn();
+  const s = eng.getState();
+  eq(s.screen, "OFFLINE", "B has 0 sips, so DRINK is skipped");
+  eq(s.offlineCounter, 0, "counter reset for the new turn");
+  eq(s.offlineTarget, "current", "target re-armed to the new thrower");
+});
+
+test("19. arming the previous player books the sips there instead", () => {
+  const rig = makeRig();
+  const eng = newGame(["A", "B", "C"], rig, "offline");
+  eng.setOfflineTarget("prev");
+  eng.adjustOfflineCounter(10);
+  eng.adjustOfflineCounter(-1);
+  eng.confirmOffline();
+  eq(eng.getState().players.map((p) => p.sips), [0, 0, 9], "A throws for C, wrapping to the last seat");
+
+  eng.advanceTurn(); // B, still on 0 sips -> straight to OFFLINE
+  eq(eng.getState().screen, "OFFLINE");
+  eng.confirmOffline(); // a plain 30, nobody pays
+
+  eng.advanceTurn(); // C, who now owes 9 — almost a full lap after A threw it
+  eq(eng.getState().screen, "DRINK", "C drinks the sips A threw two turns ago");
+  eng.drink(0);
+  eng.setOfflineTarget("prev");
+  eng.adjustOfflineCounter(1);
+  eng.confirmOffline();
+  eq(eng.getState().players.map((p) => p.sips), [0, 1, 9], "C throws for B, the seat before");
+});
+
+test("20. offline turns still route through DRINK, and quitting voids the turn", () => {
+  const rig = makeRig();
+  const eng = newGame(["A", "B", "C"], rig, "offline");
+  eng.setOfflineTarget("prev");
+  eng.adjustOfflineCounter(10);
+  eng.confirmOffline(); // A throws 10 onto C
+  eng.advanceTurn(); // B
+  eng.confirmOffline();
+  eng.advanceTurn(); // C
+  eq(eng.getState().screen, "DRINK", "C owes 10, so C drinks first");
+  eng.drink(4);
+  eq(eng.getState().screen, "OFFLINE", "then straight to OFFLINE");
+
+  eng.adjustOfflineCounter(7);
+  eng.openStopMenu();
+  eng.stopChooseQuitPlayer();
+  eng.stopConfirm();
+  const s = eng.getState();
+  eq(s.players.map((p) => p.name), ["A", "B"], "C is gone");
+  eq(s.players.map((p) => p.sips), [0, 0], "the voided turn rolled A and B back");
+  eq(s.screen, "OFFLINE", "seating re-links and A picks up the turn");
+});
+
+test("21. toggleDiceMode is a HOME-only preference", () => {
+  const eng = createEngine(makeRig());
+  eq(eng.getState().diceMode, "offline", "offline is the default (left of the toggle)");
+  eng.toggleDiceMode();
+  eq(eng.getState().diceMode, "screen");
+  eng.toggleDiceMode();
+  eq(eng.getState().diceMode, "offline", "toggling back");
+
+  eng.goToNames();
+  eng.toggleDiceMode();
+  eq(eng.getState().diceMode, "offline", "locked once past HOME");
 });
 
 test("helpers: rollDie range and displayName fallback", () => {

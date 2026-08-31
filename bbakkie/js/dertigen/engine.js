@@ -5,6 +5,7 @@ import {
   TARGET_TOTAL,
   DIVE_MAX,
   BEER_COUNTER_VALUE,
+  DICE_MODE_DEFAULT,
 } from "./config.js";
 
 // Game state machine for Dertigen. NO DOM ACCESS — this file must be
@@ -14,6 +15,10 @@ import {
 // Screens: HOME -> NAMES -> (per turn) DRINK? -> DICE_TURN -> [HUNT] ->
 // SCOREBOARD -> next player's turn. One endless loop; the game only ends
 // through the stop menu (screen "EXITED", main.js navigates away).
+//
+// In "offline" dice mode the players roll real dice and apply the rules
+// themselves; the app only keeps score. DICE_TURN/HUNT are then replaced
+// by a single OFFLINE screen: DRINK? -> OFFLINE -> SCOREBOARD.
 
 function clampPlayerCount(n) {
   return Math.min(PLAYER_COUNT.max, Math.max(PLAYER_COUNT.min, n));
@@ -35,7 +40,7 @@ export function rollDie(rng = Math.random) {
   return Math.floor(rng() * 6) + 1;
 }
 
-const IN_GAME_SCREENS = ["DRINK", "DICE_TURN", "HUNT", "SCOREBOARD"];
+const IN_GAME_SCREENS = ["DRINK", "DICE_TURN", "HUNT", "OFFLINE", "SCOREBOARD"];
 
 export function createEngine(rng = Math.random) {
   let state = {
@@ -54,6 +59,9 @@ export function createEngine(rng = Math.random) {
     turnComplete: false, // all 6 aside; resolveTurn() is UI-scheduled so the last pick can animate
     hunt: null, // see resolveTurn()
     drinkCounter: 0,
+    diceMode: DICE_MODE_DEFAULT, // "offline" | "screen" — HOME preference
+    offlineCounter: 0, // sips to hand out this turn (OFFLINE screen)
+    offlineTarget: "current", // "current" | "prev" — who offlineCounter is booked onto
     popup: null, // { type: "dive" } | { type: "joker" }
     stopMenu: null, // null | "menu" | "confirm-game" | "confirm-player"
     throwSeq: 0, // increments on every roll (turn + hunt) — animation trigger for the UI
@@ -63,8 +71,17 @@ export function createEngine(rng = Math.random) {
 
   const listeners = [];
 
-  function leftIndex() {
-    return (state.currentIndex + 1) % state.players.length;
+  // Who a turn pays out to: the seat BEFORE the thrower. Turn order itself is
+  // untouched — only the receiver moved — so sips land on a player just after
+  // their own turn has passed, and they drink them almost a full lap later
+  // instead of on the very next turn.
+  function prevIndex() {
+    return (state.currentIndex - 1 + state.players.length) % state.players.length;
+  }
+
+  // Where a turn's dice phase happens, per the HOME dice-mode preference.
+  function throwScreen() {
+    return state.diceMode === "offline" ? "OFFLINE" : "DICE_TURN";
   }
 
   function snapshot() {
@@ -85,7 +102,7 @@ export function createEngine(rng = Math.random) {
           }
         : null,
       popup: state.popup ? { ...state.popup } : null,
-      leftIndex: state.players && IN_GAME_SCREENS.includes(state.screen) ? leftIndex() : null,
+      prevIndex: state.players && IN_GAME_SCREENS.includes(state.screen) ? prevIndex() : null,
     };
   }
 
@@ -120,6 +137,13 @@ export function createEngine(rng = Math.random) {
     }
     state.playerCount = clamped;
     state.names = names;
+    emit();
+  }
+
+  // Purely a HOME preference; locked once the game is running.
+  function toggleDiceMode() {
+    if (state.screen !== "HOME") return;
+    state.diceMode = state.diceMode === "offline" ? "screen" : "offline";
     emit();
   }
 
@@ -159,8 +183,11 @@ export function createEngine(rng = Math.random) {
     state.turnComplete = false;
     state.hunt = null;
     state.drinkCounter = 0;
+    state.offlineCounter = 0;
+    // Under 30 is by far the common outcome, so pre-arm the thrower.
+    state.offlineTarget = "current";
     // The drink screen is skipped entirely at 0 sips.
-    state.screen = state.players[state.currentIndex].sips === 0 ? "DICE_TURN" : "DRINK";
+    state.screen = state.players[state.currentIndex].sips === 0 ? throwScreen() : "DRINK";
   }
 
   // ---- DRINK ----
@@ -186,12 +213,43 @@ export function createEngine(rng = Math.random) {
     if (state.screen !== "DRINK") return;
     const p = state.players[state.currentIndex];
     p.sips = Math.max(0, p.sips - Math.max(0, Math.floor(n)));
-    state.screen = "DICE_TURN";
+    state.screen = throwScreen();
     emit();
   }
 
   function confirmDrink() {
     drink(state.drinkCounter);
+  }
+
+  // ---- OFFLINE (score-keeping only) ----
+  //
+  // The players throw real dice and know the rules themselves; the app just
+  // books the sips. Exactly one player can be armed at a time, because every
+  // Dertigen payout goes to exactly one player: under 30 the thrower, over 30
+  // the player before them. A dive doubles everyone, which the table settles
+  // for itself — hence a free counter rather than the band logic.
+
+  function setOfflineTarget(target) {
+    if (state.screen !== "OFFLINE") return;
+    if (target !== "current" && target !== "prev") return;
+    state.offlineTarget = target;
+    emit();
+  }
+
+  function adjustOfflineCounter(delta) {
+    if (state.screen !== "OFFLINE") return;
+    state.offlineCounter = Math.max(0, state.offlineCounter + Math.trunc(delta));
+    emit();
+  }
+
+  // Books the counter onto the armed player and closes the turn. 0 is a legal
+  // outcome (a total of exactly 30 pays nobody), so Continue is never blocked.
+  function confirmOffline() {
+    if (state.screen !== "OFFLINE") return;
+    const i = state.offlineTarget === "prev" ? prevIndex() : state.currentIndex;
+    state.players[i].sips += state.offlineCounter;
+    state.screen = "SCOREBOARD";
+    emit();
   }
 
   // ---- DICE_TURN ----
@@ -246,15 +304,15 @@ export function createEngine(rng = Math.random) {
     } else if (total === TARGET_TOTAL) {
       state.screen = "SCOREBOARD";
     } else {
-      // Base verschil is applied to the left player the moment the hunt
+      // Base verschil is applied to the previous player the moment the hunt
       // starts; each hunted die adds incrementally in huntThrow() — the
       // scoreboard is always already correct, no settlement step.
       const verschil = total - TARGET_TOTAL; // always 1..6
-      state.players[leftIndex()].sips += verschil;
+      state.players[prevIndex()].sips += verschil;
       state.hunt = {
         wanted: verschil, // current hunted number
         baseVerschil: verschil,
-        pointsToLeft: verschil, // includes the base verschil
+        pointsToPrev: verschil, // includes the base verschil
         jokerUsed: false, // one joker per ENTIRE hunt — never resets, not even on escalation
         remaining: DICE_PER_TURN, // dice still to throw at the current level
         asideCount: 0, // dice set aside at the current level
@@ -289,8 +347,8 @@ export function createEngine(rng = Math.random) {
       // Wanted dice are set aside automatically, each scoring the hunted
       // number (escalated dice thereby score their own face value).
       const points = matchedCount * h.wanted;
-      h.pointsToLeft += points;
-      state.players[leftIndex()].sips += points;
+      h.pointsToPrev += points;
+      state.players[prevIndex()].sips += points;
       h.remaining -= matchedCount;
       h.asideCount += matchedCount;
       if (h.remaining === 0) {
@@ -391,7 +449,7 @@ export function createEngine(rng = Math.random) {
   }
 
   // The current player is removed entirely; seating re-links across the
-  // gap and play continues at the ex-left player's TURN_START.
+  // gap and play continues at the next player's TURN_START.
   //
   // Rollback window (Bram's ruling): during DRINK/DICE_TURN/HUNT the
   // in-progress turn is VOIDED — every remaining player's sips return to
@@ -413,7 +471,7 @@ export function createEngine(rng = Math.random) {
       quitGame();
       return;
     }
-    // The splice shifted the quitter's left neighbour into their seat.
+    // The splice shifted the next player in turn order into the quitter's seat.
     state.currentIndex = state.currentIndex % state.players.length;
     startTurn();
     emit();
@@ -423,6 +481,7 @@ export function createEngine(rng = Math.random) {
     subscribe,
     getState,
     setPlayerCount,
+    toggleDiceMode,
     goToNames,
     setName,
     startGame,
@@ -430,6 +489,9 @@ export function createEngine(rng = Math.random) {
     beerCounter,
     drink,
     confirmDrink,
+    setOfflineTarget,
+    adjustOfflineCounter,
+    confirmOffline,
     throwDice,
     pickValue,
     resolveTurn,

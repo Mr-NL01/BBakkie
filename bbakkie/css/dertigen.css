@@ -473,3 +473,145 @@
   line-height: 1;
   animation: joker-pop 0.25s ease-out;
 }
+
+/* HOME — dice-mode toggle (offline scorekeeping vs. on-screen dice).
+   Both positions are green on purpose: neither mode is the "off" state, so
+   the track never greys out. Left/off = Offline dice, right/on = Screen
+   dice; the armed side is also the one whose label is at full contrast. */
+
+.dice-mode-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.dice-mode-label {
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.dice-mode-label.active {
+  color: var(--text);
+}
+
+.toggle {
+  width: 52px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--border);
+  border: none;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggle .toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--text);
+  transition: left 0.15s ease;
+}
+
+.toggle.on .toggle-thumb {
+  left: 25px;
+}
+
+.toggle-green {
+  background: var(--accent-dark);
+}
+
+.toggle-green.on {
+  background: var(--accent);
+}
+
+/* OFFLINE — the two names sit just above the middle of the screen, with the
+   sip counter and Continue filling the space below them. */
+
+.offline-content {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 28px;
+}
+
+.offline-players {
+  display: flex;
+  gap: 12px;
+}
+
+/* Tapping a name arms it — the counter is booked onto exactly one player. */
+.offline-player {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 10px;
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.offline-player.armed {
+  border-color: var(--accent);
+  background: rgba(46, 204, 113, 0.12);
+}
+
+.offline-role {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.offline-player.armed .offline-role {
+  color: var(--accent);
+}
+
+.offline-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.offline-counter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+/* ±10 need room for two digits, so they widen into pills. */
+.offline-step-wide {
+  width: 58px;
+  border-radius: 999px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.offline-count {
+  flex: 1;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}

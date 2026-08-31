@@ -45,7 +45,16 @@
         </div>
       </div>
 
+      <div class="setting-block dice-mode-row">
+        <span class="dice-mode-label" data-mode="offline">Offline dice</span>
+        <button type="button" id="dice-mode-toggle" class="toggle toggle-green" role="switch" aria-checked="false" aria-label="Dice mode: Offline dice or Screen dice">
+          <span class="toggle-thumb"></span>
+        </button>
+        <span class="dice-mode-label" data-mode="screen">Screen dice</span>
+      </div>
+
       <button type="button" id="home-start" class="btn btn-primary btn-large">Start</button>
+
     </div>
   </section>
 
@@ -75,7 +84,34 @@
     </div>
   </section>
 
+  <!-- OFFLINE — score-keeping only; the dice are thrown in real life -->
+  <section id="screen-offline" class="screen">
+    <div class="offline-content">
+      <div class="offline-players">
+        <button type="button" class="offline-player" data-target="current">
+          <span class="offline-role">Throwing</span>
+          <span id="offline-name-current" class="offline-name"></span>
+        </button>
+        <button type="button" class="offline-player" data-target="prev">
+          <span class="offline-role">Previous</span>
+          <span id="offline-name-prev" class="offline-name"></span>
+        </button>
+      </div>
+
+      <div class="offline-counter">
+        <button type="button" class="stepper-btn offline-step-wide" data-delta="-10">&minus;10</button>
+        <button type="button" class="stepper-btn" data-delta="-1">&minus;1</button>
+        <span id="offline-count" class="offline-count">0</span>
+        <button type="button" class="stepper-btn" data-delta="1">+1</button>
+        <button type="button" class="stepper-btn offline-step-wide" data-delta="10">+10</button>
+      </div>
+
+      <button type="button" id="offline-continue" class="btn btn-primary btn-large">Continue</button>
+    </div>
+  </section>
+
   <!-- DICE_TURN -->
+
   <section id="screen-dice" class="screen">
     <div class="dice-content">
       <div id="dice-player" class="turn-player"></div>

@@ -19,7 +19,7 @@ let huntDiceEls = []; // live dice elements in the HUNT throw area
 let selectedValue = null; // forced-pick selection (UI-only state)
 let pickEnabled = false; // taps ignored while dice are tumbling
 
-const IN_GAME_SCREENS = ["DRINK", "DICE_TURN", "HUNT", "SCOREBOARD"];
+const IN_GAME_SCREENS = ["DRINK", "DICE_TURN", "HUNT", "OFFLINE", "SCOREBOARD"];
 
 export function init() {
   els = {
@@ -27,6 +27,7 @@ export function init() {
       HOME: document.getElementById("screen-home"),
       NAMES: document.getElementById("screen-names"),
       DRINK: document.getElementById("screen-drink"),
+      OFFLINE: document.getElementById("screen-offline"),
       DICE_TURN: document.getElementById("screen-dice"),
       HUNT: document.getElementById("screen-hunt"),
       SCOREBOARD: document.getElementById("screen-scoreboard"),
@@ -37,6 +38,8 @@ export function init() {
       playerPlus: document.getElementById("player-plus"),
       playerCount: document.getElementById("player-count"),
       startButton: document.getElementById("home-start"),
+      diceModeToggle: document.getElementById("dice-mode-toggle"),
+      diceModeLabels: Array.from(document.querySelectorAll(".dice-mode-label")),
     },
     names: {
       tableBody: document.querySelector("#names-table tbody"),
@@ -50,6 +53,14 @@ export function init() {
       plus: document.getElementById("drink-plus"),
       beer: document.getElementById("drink-beer"),
       confirmButton: document.getElementById("drink-confirm"),
+    },
+    offline: {
+      players: Array.from(document.querySelectorAll("#screen-offline .offline-player")),
+      nameCurrent: document.getElementById("offline-name-current"),
+      namePrev: document.getElementById("offline-name-prev"),
+      counter: document.querySelector("#screen-offline .offline-counter"),
+      count: document.getElementById("offline-count"),
+      continueButton: document.getElementById("offline-continue"),
     },
     dice: {
       player: document.getElementById("dice-player"),
@@ -314,6 +325,13 @@ function renderHome(state) {
   els.home.playerCount.textContent = String(state.playerCount);
   els.home.playerMinus.disabled = state.playerCount <= PLAYER_COUNT.min;
   els.home.playerPlus.disabled = state.playerCount >= PLAYER_COUNT.max;
+
+  const screenDice = state.diceMode === "screen";
+  els.home.diceModeToggle.classList.toggle("on", screenDice);
+  els.home.diceModeToggle.setAttribute("aria-checked", String(screenDice));
+  els.home.diceModeLabels.forEach((lbl) => {
+    lbl.classList.toggle("active", lbl.dataset.mode === state.diceMode);
+  });
 }
 
 // Rebuilds the name-input rows. Only called when NAMES is freshly entered —
@@ -349,7 +367,24 @@ function renderDrink(state) {
   els.drink.plus.disabled = state.drinkCounter >= p.sips;
 }
 
+// Offline mode's whole turn: who threw, who they throw for (the seat before
+// them), and how many sips the table decided that costs. Exactly one name is
+// armed at a time.
+function renderOffline(state) {
+  els.offline.nameCurrent.textContent = state.players[state.currentIndex].name;
+  els.offline.namePrev.textContent = state.players[state.prevIndex].name;
+  els.offline.players.forEach((btn) => {
+    btn.classList.toggle("armed", btn.dataset.target === state.offlineTarget);
+  });
+  els.offline.count.textContent = String(state.offlineCounter);
+  els.offline.counter.querySelectorAll("[data-delta]").forEach((btn) => {
+    // Only the decrements can run out of room; Continue at 0 is always legal.
+    btn.disabled = Number(btn.dataset.delta) < 0 && state.offlineCounter === 0;
+  });
+}
+
 function renderScoreboard(state) {
+
   els.board.tableBody.innerHTML = "";
   state.players.forEach((p) => {
     const tr = document.createElement("tr");
@@ -459,7 +494,7 @@ function renderHunt(state, settle) {
     settle();
     return;
   }
-  const leftName = state.players[state.leftIndex].name;
+  const prevName = state.players[state.prevIndex].name;
   els.hunt.player.textContent = state.players[state.currentIndex].name;
 
   const enteredHunt = previousScreen !== "HUNT";
@@ -473,9 +508,9 @@ function renderHunt(state, settle) {
   if (h.lastResult && state.throwSeq !== animatedThrowSeq) {
     animatedThrowSeq = state.throwSeq;
     const r = h.lastResult;
-    const pointsBefore = h.pointsToLeft - r.matchedCount * r.wanted;
+    const pointsBefore = h.pointsToPrev - r.matchedCount * r.wanted;
     els.hunt.target.textContent = `Hunting ${r.wanted}s`;
-    els.hunt.points.textContent = `+${pointsBefore} to ${leftName}`;
+    els.hunt.points.textContent = `+${pointsBefore} to ${prevName}`;
     paintSlots(els.hunt.asideRow, r.wanted, r.asideBefore);
     rebuildArea(els.hunt.area, r.dice, huntDiceEls);
     els.hunt.throwButton.classList.add("invisible");
@@ -499,7 +534,7 @@ function renderHunt(state, settle) {
         flyAll(pairs, r.wanted, () => {
           matched.forEach((el) => el.remove());
           huntDiceEls = huntDiceEls.filter((el) => !matched.includes(el));
-          els.hunt.points.textContent = `+${h.pointsToLeft} to ${leftName}`;
+          els.hunt.points.textContent = `+${h.pointsToPrev} to ${prevName}`;
           if (!r.escalated) {
             els.hunt.throwButton.classList.remove("invisible");
             settle();
@@ -523,7 +558,7 @@ function renderHunt(state, settle) {
 
   // Settled repaint (hunt entry, joker dismissed, stop menu closed...).
   els.hunt.target.textContent = `Hunting ${h.wanted}s`;
-  els.hunt.points.textContent = `+${h.pointsToLeft} to ${leftName}`;
+  els.hunt.points.textContent = `+${h.pointsToPrev} to ${prevName}`;
   paintSlots(els.hunt.asideRow, h.wanted, h.asideCount);
   els.hunt.throwButton.classList.toggle("invisible", h.ended || Boolean(state.popup));
   settle();
@@ -562,6 +597,7 @@ export function render(state, onSettled = () => {}) {
   if (state.screen === "HOME") renderHome(state);
   if (state.screen === "NAMES" && previousScreen !== "NAMES") renderNames(state);
   if (state.screen === "DRINK") renderDrink(state);
+  if (state.screen === "OFFLINE") renderOffline(state);
   if (state.screen === "SCOREBOARD") renderScoreboard(state);
 
   renderStop(state);

@@ -100,6 +100,7 @@ function wireEvents(els) {
   els.home.playerPlus.addEventListener("pointerdown", () => {
     engine.setPlayerCount(engine.getState().playerCount + 1);
   });
+  els.home.diceModeToggle.addEventListener("pointerdown", () => engine.toggleDiceMode());
   els.home.startButton.addEventListener("pointerdown", () => engine.goToNames());
 
   // NAMES
@@ -122,7 +123,19 @@ function wireEvents(els) {
   els.drink.beer.addEventListener("pointerdown", () => engine.beerCounter());
   els.drink.confirmButton.addEventListener("pointerdown", () => engine.confirmDrink());
 
+  // OFFLINE — dice are thrown for real; the app only books the sips.
+  els.offline.players.forEach((btn) => {
+    btn.addEventListener("pointerdown", () => engine.setOfflineTarget(btn.dataset.target));
+  });
+  els.offline.counter.addEventListener("pointerdown", (e) => {
+    const btn = e.target.closest("[data-delta]");
+    if (!btn || btn.disabled) return;
+    engine.adjustOfflineCounter(Number(btn.dataset.delta));
+  });
+  els.offline.continueButton.addEventListener("pointerdown", () => engine.confirmOffline());
+
   // DICE_TURN — tap any die to select its whole value group, Continue confirms.
+
   els.dice.throwButton.addEventListener("pointerdown", () => engine.throwDice());
   els.dice.area.addEventListener("pointerdown", (e) => {
     const die = e.target.closest(".die");
