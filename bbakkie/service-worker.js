@@ -1,4 +1,4 @@
-const CACHE_NAME = "bbakkie-v16";
+const CACHE_NAME = "bbakkie-v17";
 
 const ASSETS = [
   "./",
@@ -26,6 +26,7 @@ const ASSETS = [
   "assets/icons/icon-192.png",
   "assets/icons/icon-512.png",
   "assets/icons/apple-touch-icon.png",
+  "assets/icons/favicon.png",
 ];
 
 self.addEventListener("install", (event) => {
