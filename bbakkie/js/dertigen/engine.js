@@ -19,6 +19,9 @@ import {
 // In "offline" dice mode the players roll real dice and apply the rules
 // themselves; the app only keeps score. DICE_TURN/HUNT are then replaced
 // by a single OFFLINE screen: DRINK? -> OFFLINE -> SCOREBOARD.
+//
+// The ⬅️ back button undoes the last screen change, sips included, by
+// restoring a copy of the state from the previous screen (see goBack()).
 
 function clampPlayerCount(n) {
   return Math.min(PLAYER_COUNT.max, Math.max(PLAYER_COUNT.min, n));
@@ -42,6 +45,15 @@ export function rollDie(rng = Math.random) {
 
 const IN_GAME_SCREENS = ["DRINK", "DICE_TURN", "HUNT", "OFFLINE", "SCOREBOARD"];
 
+// Screens the back button can return to. NAMES is included so the first
+// turn can still go back to fix a name.
+const HISTORY_SCREENS = ["NAMES", ...IN_GAME_SCREENS];
+
+// Restored as they were on ENTRY rather than as last seen: their last state
+// (all dice aside / hunt ended) would just re-fire the automatic
+// resolveTurn/finishHunt and bounce straight forward again.
+const REPLAY_FROM_ENTRY = ["DICE_TURN", "HUNT"];
+
 export function createEngine(rng = Math.random) {
   let state = {
     screen: "HOME",
@@ -62,7 +74,7 @@ export function createEngine(rng = Math.random) {
     diceMode: DICE_MODE_DEFAULT, // "offline" | "screen" — HOME preference
     offlineCounter: 0, // sips to hand out this turn (OFFLINE screen)
     offlineTarget: "current", // "current" | "prev" — who offlineCounter is booked onto
-    popup: null, // { type: "dive" } | { type: "joker" }
+    popup: null, // { type: "dive" } | { type: "joker" } | { type: "dive-confirm" }
     stopMenu: null, // null | "menu" | "confirm-game" | "confirm-player"
     throwSeq: 0, // increments on every roll (turn + hunt) — animation trigger for the UI
     pickSeq: 0, // increments on every confirmed pick — ditto
@@ -70,6 +82,10 @@ export function createEngine(rng = Math.random) {
   };
 
   const listeners = [];
+
+  // One entry per screen visit this game, oldest first; the top is the
+  // current visit. Kept outside `state` so snapshots never carry it.
+  let history = [];
 
   // Who a turn pays out to: the seat BEFORE the thrower. Turn order itself is
   // untouched — only the receiver moved — so sips land on a player just after
@@ -103,10 +119,27 @@ export function createEngine(rng = Math.random) {
         : null,
       popup: state.popup ? { ...state.popup } : null,
       prevIndex: state.players && IN_GAME_SCREENS.includes(state.screen) ? prevIndex() : null,
+      canGoBack: canGoBack(),
     };
   }
 
+  // Called on every emit. A new screen (or a new turn on the same screen)
+  // opens a new history entry; further changes on the same visit overwrite
+  // it, so going back lands on the screen as it was last seen — counters
+  // and typed names included — except for REPLAY_FROM_ENTRY screens.
+  function recordHistory() {
+    if (!HISTORY_SCREENS.includes(state.screen)) return;
+    const top = history[history.length - 1];
+    const sameVisit = top && top.screen === state.screen && top.turnSeq === state.turnSeq;
+    if (!sameVisit) {
+      history.push(structuredClone(state));
+    } else if (!REPLAY_FROM_ENTRY.includes(state.screen)) {
+      history[history.length - 1] = structuredClone(state);
+    }
+  }
+
   function emit() {
+    recordHistory();
     const snap = snapshot();
     listeners.forEach((fn) => fn(snap));
   }
@@ -149,6 +182,7 @@ export function createEngine(rng = Math.random) {
 
   function goToNames() {
     if (state.screen !== "HOME") return;
+    history = [];
     state.screen = "NAMES";
     emit();
   }
@@ -221,6 +255,15 @@ export function createEngine(rng = Math.random) {
     drink(state.drinkCounter);
   }
 
+  // Successful duik: every OTHER player doubles (0 stays 0), diver unchanged.
+  function diveDoubleOthers() {
+    state.players.forEach((p, i) => {
+      if (i !== state.currentIndex) p.sips *= 2;
+    });
+    state.popup = { type: "dive" };
+    state.screen = "SCOREBOARD";
+  }
+
   // ---- OFFLINE (score-keeping only) ----
   //
   // The players throw real dice and know the rules themselves; the app just
@@ -249,6 +292,27 @@ export function createEngine(rng = Math.random) {
     const i = state.offlineTarget === "prev" ? prevIndex() : state.currentIndex;
     state.players[i].sips += state.offlineCounter;
     state.screen = "SCOREBOARD";
+    emit();
+  }
+
+  // The one payout the counter can't express: a dive doubles everyone else.
+  // Asks first ("Did X successfully dive?") since it can't be booked by
+  // accident-and-adjust like the counter can.
+  function offlineDive() {
+    if (state.screen !== "OFFLINE" || state.popup) return;
+    state.popup = { type: "dive-confirm" };
+    emit();
+  }
+
+  function confirmOfflineDive() {
+    if (state.screen !== "OFFLINE" || !state.popup || state.popup.type !== "dive-confirm") return;
+    diveDoubleOthers();
+    emit();
+  }
+
+  function cancelOfflineDive() {
+    if (!state.popup || state.popup.type !== "dive-confirm") return;
+    state.popup = null;
     emit();
   }
 
@@ -292,12 +356,7 @@ export function createEngine(rng = Math.random) {
     const total = state.setAside.reduce((a, b) => a + b, 0);
 
     if (total <= DIVE_MAX) {
-      // Successful duik: every OTHER player doubles (0 stays 0), diver unchanged.
-      state.players.forEach((p, i) => {
-        if (i !== state.currentIndex) p.sips *= 2;
-      });
-      state.popup = { type: "dive" };
-      state.screen = "SCOREBOARD";
+      diveDoubleOthers();
     } else if (total < TARGET_TOTAL) {
       state.players[state.currentIndex].sips += TARGET_TOTAL - total;
       state.screen = "SCOREBOARD";
@@ -396,6 +455,28 @@ export function createEngine(rng = Math.random) {
     emit();
   }
 
+  // ---- back button ----
+
+  function canGoBack() {
+    return IN_GAME_SCREENS.includes(state.screen) && history.length >= 2 && !state.popup && !state.stopMenu;
+  }
+
+  // Drops the current visit and restores the previous one — a full undo of
+  // everything that happened since, sips included. The animation counters
+  // stay monotonic (the UI compares them against what it already played),
+  // and turnSeq moves on so the UI treats the restored screen as fresh.
+  function goBack() {
+    if (!canGoBack()) return;
+    history.pop();
+    const throwSeq = state.throwSeq;
+    const pickSeq = state.pickSeq;
+    const turnSeq = state.turnSeq + 1;
+    state = structuredClone(history[history.length - 1]);
+    Object.assign(state, { throwSeq, pickSeq, turnSeq, popup: null, stopMenu: null });
+    history[history.length - 1] = structuredClone(state);
+    emit();
+  }
+
   // ---- stop menu / quitting ----
 
   function openStopMenu() {
@@ -440,6 +521,7 @@ export function createEngine(rng = Math.random) {
   // All state discarded; main.js navigates back to the landing page.
   function quitGame() {
     state.screen = "EXITED";
+    history = [];
     state.players = null;
     state.turnStartSips = null;
     state.hunt = null;
@@ -464,6 +546,7 @@ export function createEngine(rng = Math.random) {
       });
     }
     state.players.splice(state.currentIndex, 1);
+    history = []; // "can't be undone"
     state.popup = null;
     state.stopMenu = null;
 
@@ -492,6 +575,9 @@ export function createEngine(rng = Math.random) {
     setOfflineTarget,
     adjustOfflineCounter,
     confirmOffline,
+    offlineDive,
+    confirmOfflineDive,
+    cancelOfflineDive,
     throwDice,
     pickValue,
     resolveTurn,
@@ -499,6 +585,7 @@ export function createEngine(rng = Math.random) {
     finishHunt,
     dismissPopup,
     advanceTurn,
+    goBack,
     openStopMenu,
     stopChooseQuitGame,
     stopChooseQuitPlayer,

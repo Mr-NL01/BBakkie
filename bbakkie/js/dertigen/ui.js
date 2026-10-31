@@ -18,6 +18,7 @@ let diceEls = []; // live dice elements in the DICE_TURN throw area
 let huntDiceEls = []; // live dice elements in the HUNT throw area
 let selectedValue = null; // forced-pick selection (UI-only state)
 let pickEnabled = false; // taps ignored while dice are tumbling
+let animationsInFlight = 0; // DICE_TURN/HUNT renders whose settle() hasn't fired yet
 
 const IN_GAME_SCREENS = ["DRINK", "DICE_TURN", "HUNT", "OFFLINE", "SCOREBOARD"];
 
@@ -33,6 +34,7 @@ export function init() {
       SCOREBOARD: document.getElementById("screen-scoreboard"),
     },
     stopButton: document.getElementById("stop-btn"),
+    backButton: document.getElementById("back-btn"),
     home: {
       playerMinus: document.getElementById("player-minus"),
       playerPlus: document.getElementById("player-plus"),
@@ -55,6 +57,7 @@ export function init() {
       confirmButton: document.getElementById("drink-confirm"),
     },
     offline: {
+      diveButton: document.getElementById("offline-dive"),
       players: Array.from(document.querySelectorAll("#screen-offline .offline-player")),
       nameCurrent: document.getElementById("offline-name-current"),
       namePrev: document.getElementById("offline-name-prev"),
@@ -86,6 +89,12 @@ export function init() {
       overlay: document.getElementById("dive-overlay"),
       continueButton: document.getElementById("dive-continue"),
     },
+    diveConfirm: {
+      overlay: document.getElementById("dive-confirm-overlay"),
+      title: document.getElementById("dive-confirm-title"),
+      yes: document.getElementById("dive-confirm-yes"),
+      no: document.getElementById("dive-confirm-no"),
+    },
     joker: {
       overlay: document.getElementById("joker-overlay"),
     },
@@ -104,6 +113,12 @@ export function init() {
 
 export function getElements() {
   return els;
+}
+
+// True while dice are tumbling/flying. main.js ignores the back button then:
+// leaving mid-animation would let the stale chain paint over the new screen.
+export function isAnimating() {
+  return animationsInFlight > 0;
 }
 
 // ---- pip dice ----
@@ -567,10 +582,16 @@ function renderHunt(state, settle) {
 function renderPopups(state) {
   els.dive.overlay.classList.toggle("active", Boolean(state.popup && state.popup.type === "dive"));
   els.joker.overlay.classList.toggle("active", Boolean(state.popup && state.popup.type === "joker"));
+  const confirmingDive = Boolean(state.popup && state.popup.type === "dive-confirm");
+  els.diveConfirm.overlay.classList.toggle("active", confirmingDive);
+  if (confirmingDive) {
+    els.diveConfirm.title.textContent = `Did ${state.players[state.currentIndex].name} successfully dive?`;
+  }
 }
 
 function renderStop(state) {
   els.stopButton.classList.toggle("hidden", !IN_GAME_SCREENS.includes(state.screen));
+  els.backButton.classList.toggle("hidden", !state.canGoBack);
   els.stop.overlay.classList.toggle("active", state.stopMenu === "menu");
   const confirming = state.stopMenu === "confirm-game" || state.stopMenu === "confirm-player";
   els.stop.confirmOverlay.classList.toggle("active", confirming);
@@ -608,12 +629,19 @@ export function render(state, onSettled = () => {}) {
     onSettled();
   };
 
-  if (state.screen === "DICE_TURN") {
-    previousScreen = screenForThisRender;
-    renderDiceTurn(state, settle);
-  } else if (state.screen === "HUNT") {
-    renderHunt(state, settle);
-    previousScreen = screenForThisRender;
+  if (state.screen === "DICE_TURN" || state.screen === "HUNT") {
+    animationsInFlight += 1;
+    const settleAnimated = () => {
+      animationsInFlight -= 1;
+      settle();
+    };
+    if (state.screen === "DICE_TURN") {
+      previousScreen = screenForThisRender;
+      renderDiceTurn(state, settleAnimated);
+    } else {
+      renderHunt(state, settleAnimated);
+      previousScreen = screenForThisRender;
+    }
   } else {
     previousScreen = screenForThisRender;
     settle();

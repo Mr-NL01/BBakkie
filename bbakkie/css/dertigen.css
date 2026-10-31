@@ -4,6 +4,7 @@
 
 :root {
   --warning: #e67e22; /* "current player quits" — between green and red */
+  --dive: #3498db; /* offline Dive 🤿 button */
   --die-face: #f2f3f5;
   --die-pip: #16181d;
 }
@@ -24,7 +25,24 @@
   cursor: pointer;
 }
 
-.stop-btn.hidden {
+/* Back button — directly under the stop button */
+
+.back-btn {
+  position: fixed;
+  top: calc(max(16px, env(safe-area-inset-top)) + 52px);
+  left: 16px;
+  z-index: 1500;
+  background: none;
+  border: none;
+  font-size: 1.7rem;
+  line-height: 1;
+  padding: 8px;
+  margin: -8px;
+  cursor: pointer;
+}
+
+.stop-btn.hidden,
+.back-btn.hidden {
   display: none;
 }
 
@@ -540,6 +558,11 @@
   flex-direction: column;
   align-items: stretch;
   gap: 28px;
+}
+
+.btn-dive {
+  background: var(--dive);
+  color: #061a2b;
 }
 
 .offline-players {

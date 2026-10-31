@@ -613,6 +613,124 @@ test("21. toggleDiceMode is a HOME-only preference", () => {
   eq(eng.getState().diceMode, "offline", "locked once past HOME");
 });
 
+test("22. offline dive: confirmation, then everyone else doubles", () => {
+  const rig = makeRig();
+  const eng = newGame(["A", "B", "C"], rig, "offline");
+  eng.setOfflineTarget("prev");
+  eng.adjustOfflineCounter(5);
+  eng.confirmOffline(); // A throws 5 onto C
+  eng.advanceTurn(); // B
+  eng.adjustOfflineCounter(3);
+  eng.confirmOffline(); // B takes 3 itself
+  eng.advanceTurn(); // C drinks 1 of 5
+  eng.drink(1);
+  eq(eng.getState().players.map((p) => p.sips), [0, 3, 4]);
+
+  eng.offlineDive();
+  eq(eng.getState().popup, { type: "dive-confirm" }, "Dive asks first");
+  eng.cancelOfflineDive();
+  eq(eng.getState().popup, null, "No closes the question");
+  eq(eng.getState().screen, "OFFLINE", "...and stays on OFFLINE");
+  eq(eng.getState().players.map((p) => p.sips), [0, 3, 4], "...with nothing doubled");
+
+  eng.offlineDive();
+  eng.confirmOfflineDive();
+  const s = eng.getState();
+  eq(s.players.map((p) => p.sips), [0, 6, 4], "others double (0 stays 0), diver C unchanged");
+  eq(s.screen, "SCOREBOARD");
+  eq(s.popup, { type: "dive" }, "the Successful dive popup follows");
+  eng.advanceTurn();
+  eq(eng.getState().screen, "SCOREBOARD", "blocked until the popup is dismissed");
+  nextTurn(eng);
+  eq(eng.getState().currentIndex, 0, "play continues with A");
+});
+
+test("23. back undoes the last screen change, sips included", () => {
+  const rig = makeRig();
+  const eng = newGame(["A", "B"], rig, "offline");
+  eq(eng.getState().canGoBack, true, "first turn can go back to NAMES");
+
+  eng.adjustOfflineCounter(7);
+  eng.confirmOffline();
+  eq(eng.getState().players[0].sips, 7);
+  eng.goBack();
+  let s = eng.getState();
+  eq(s.screen, "OFFLINE", "SCOREBOARD -> back -> OFFLINE");
+  eq(s.players[0].sips, 7 - 7, "the booking is undone");
+  eq(s.offlineCounter, 7, "the counter is as it was left");
+  eng.adjustOfflineCounter(-1);
+  eng.confirmOffline();
+  eq(eng.getState().players[0].sips, 6, "re-booked with the corrected count");
+
+  eng.advanceTurn(); // B, 0 sips -> OFFLINE
+  eng.confirmOffline();
+  eng.advanceTurn(); // A owes 6 -> DRINK
+  eng.adjustDrinkCounter(4);
+  eng.confirmDrink();
+  eq(eng.getState().players[0].sips, 2);
+  eng.goBack();
+  s = eng.getState();
+  eq([s.screen, s.players[0].sips, s.drinkCounter], ["DRINK", 6, 4], "drinking is undone too");
+  eng.goBack();
+  eq([eng.getState().screen, eng.getState().currentIndex], ["SCOREBOARD", 1], "back across the turn boundary");
+  eng.goBack();
+  eng.goBack();
+  eng.goBack();
+  eng.goBack();
+  s = eng.getState();
+  eq(s.screen, "NAMES", "all the way back to the names");
+  eq(s.names, ["A", "B"], "typed names survive");
+  eq(s.canGoBack, false, "no back button outside the game");
+  eng.goBack();
+  eq(eng.getState().screen, "NAMES", "goBack is a no-op there");
+});
+
+test("24. back after a dive and from a hunt restores the turn's start", () => {
+  const rig = makeRig();
+  const eng = newGame(["A", "B", "C"], rig, "offline");
+  eng.setOfflineTarget("prev");
+  eng.adjustOfflineCounter(5);
+  eng.confirmOffline();
+  eng.advanceTurn(); // B
+  eng.offlineDive();
+  eq(eng.getState().canGoBack, false, "no back while the question is open");
+  eng.confirmOfflineDive();
+  eq(eng.getState().players.map((p) => p.sips), [0, 0, 10]);
+  eng.goBack();
+  eq(eng.getState().canGoBack, false, "no back while the dive popup is up");
+  eng.dismissPopup();
+  eng.goBack();
+  let s = eng.getState();
+  eq([s.screen, s.popup], ["OFFLINE", null], "back on OFFLINE, question closed");
+  eq(s.players.map((p) => p.sips), [0, 0, 5], "the doubling is undone");
+
+  // Screen dice: back from HUNT goes to the start of the dice phase, not to
+  // the all-dice-aside state (which would just resolve straight back).
+  const rig2 = makeRig();
+  const eng2 = newGame(["A", "B", "C"], rig2);
+  playTurn(eng2, rig2, T33);
+  eq(eng2.getState().screen, "HUNT");
+  eq(eng2.getState().players[2].sips, 3, "base verschil applied");
+  eng2.goBack();
+  s = eng2.getState();
+  eq([s.screen, s.setAside, s.lastThrow, s.turnComplete], ["DICE_TURN", [], null, false], "a fresh dice phase");
+  eq(s.players[2].sips, 0, "verschil undone");
+  ok(s.throwSeq >= 2, "animation counters never run backwards");
+});
+
+test("25. quitting a player clears the back history", () => {
+  const rig = makeRig();
+  const eng = newGame(["A", "B", "C"], rig, "offline");
+  eng.confirmOffline();
+  eng.advanceTurn(); // B
+  eng.openStopMenu();
+  eng.stopChooseQuitPlayer();
+  eng.stopConfirm();
+  const s = eng.getState();
+  eq(s.players.map((p) => p.name), ["A", "C"]);
+  eq(s.canGoBack, false, "a quit can't be undone");
+});
+
 test("helpers: rollDie range and displayName fallback", () => {
   const rig = makeRig();
   rig.push(1, 6);

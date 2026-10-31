@@ -23,6 +23,8 @@
   <!-- Permanent stop button on all in-game screens (hidden on HOME/NAMES,
        where the home icon / nothing applies instead). -->
   <button type="button" id="stop-btn" class="stop-btn hidden" aria-label="Stop menu">🛑</button>
+  <!-- Back: undoes the last screen change (shown only when there is one). -->
+  <button type="button" id="back-btn" class="back-btn hidden" aria-label="Back to previous screen">⬅️</button>
 
   <!-- HOME -->
   <section id="screen-home" class="screen">
@@ -88,6 +90,8 @@
   <!-- OFFLINE — score-keeping only; the dice are thrown in real life -->
   <section id="screen-offline" class="screen">
     <div class="offline-content">
+      <button type="button" id="offline-dive" class="btn btn-dive btn-large">Dive 🤿</button>
+
       <div class="offline-players">
         <button type="button" class="offline-player" data-target="current">
           <span class="offline-role">Throwing</span>
@@ -161,6 +165,18 @@
       <h3 class="modal-title">Successful dive!!!</h3>
       <p class="modal-message">All amounts are doubled</p>
       <button type="button" id="dive-continue" class="btn btn-primary btn-large">Continue</button>
+    </div>
+  </div>
+
+  <!-- Offline dive confirmation -->
+  <div id="dive-confirm-overlay" class="modal-overlay">
+    <div class="modal-box">
+      <p class="modal-emoji">🤿</p>
+      <h3 id="dive-confirm-title" class="modal-title"></h3>
+      <div class="modal-actions">
+        <button type="button" id="dive-confirm-yes" class="btn btn-primary">Yes</button>
+        <button type="button" id="dive-confirm-no" class="btn btn-secondary">No</button>
+      </div>
     </div>
   </div>
 

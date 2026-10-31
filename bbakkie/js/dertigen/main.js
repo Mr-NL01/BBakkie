@@ -133,6 +133,9 @@ function wireEvents(els) {
     engine.adjustOfflineCounter(Number(btn.dataset.delta));
   });
   els.offline.continueButton.addEventListener("pointerdown", () => engine.confirmOffline());
+  els.offline.diveButton.addEventListener("pointerdown", () => engine.offlineDive());
+  els.diveConfirm.yes.addEventListener("pointerdown", () => engine.confirmOfflineDive());
+  els.diveConfirm.no.addEventListener("pointerdown", () => engine.cancelOfflineDive());
 
   // DICE_TURN — tap any die to select its whole value group, Continue confirms.
 
@@ -156,6 +159,12 @@ function wireEvents(els) {
 
   // Popups
   els.dive.continueButton.addEventListener("pointerdown", () => engine.dismissPopup());
+
+  // Back — undo the last screen change. Ignored mid-animation.
+  els.backButton.addEventListener("pointerdown", () => {
+    if (ui.isAnimating()) return;
+    engine.goBack();
+  });
 
   // Stop menu
   els.stopButton.addEventListener("pointerdown", () => engine.openStopMenu());
